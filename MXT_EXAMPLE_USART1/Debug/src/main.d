@@ -1,5 +1,5 @@
 src/main.d src/main.o: ../src/main.c ../src/asf.h \
- ../src/ASF/sam/utils/compiler.h \
+ ../src/ASF/sam/drivers/afec/afec.h ../src/ASF/sam/utils/compiler.h \
  d:\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stddef.h \
  ../src/ASF/common/utils/parts.h \
  ../src/ASF/sam/utils/preprocessor/preprocessor.h \
@@ -190,6 +190,10 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  ../src/ASF/sam/boards/same70_xplained/led.h \
  ../src/ASF/common/services/spi/sam_spi/spi_master.h \
  ../src/ASF/sam/drivers/spi/spi.h ../src/config/conf_spi_master.h \
+ ../src/ASF/common/services/sleepmgr/sam/sleepmgr.h \
+ ../src/config/conf_sleepmgr.h \
+ ../src/ASF/common/services/sleepmgr/sleepmgr.h \
+ ../src/ASF/common/services/sleepmgr/sam/sleepmgr.h \
  ../src/ASF/common/utils/stdio/stdio_serial/stdio_serial.h \
  ../src/ASF/common/services/serial/serial.h \
  ../src/ASF/common/services/serial/sam_uart/uart_serial.h \
@@ -209,6 +213,8 @@ src/main.d src/main.o: ../src/main.c ../src/asf.h \
  ../src/digital521.h ../src/soneca.h ../src/ar.h ../src/termometro.h
 
 ../src/asf.h:
+
+../src/ASF/sam/drivers/afec/afec.h:
 
 ../src/ASF/sam/utils/compiler.h:
 
@@ -599,6 +605,14 @@ d:\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-none-eabi\include\alloca
 ../src/ASF/sam/drivers/spi/spi.h:
 
 ../src/config/conf_spi_master.h:
+
+../src/ASF/common/services/sleepmgr/sam/sleepmgr.h:
+
+../src/config/conf_sleepmgr.h:
+
+../src/ASF/common/services/sleepmgr/sleepmgr.h:
+
+../src/ASF/common/services/sleepmgr/sam/sleepmgr.h:
 
 ../src/ASF/common/utils/stdio/stdio_serial/stdio_serial.h:
 
