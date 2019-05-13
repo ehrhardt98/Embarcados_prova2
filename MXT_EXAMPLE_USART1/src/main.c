@@ -309,9 +309,11 @@ void draw_screen(void) {
 
 void draw_overlay(uint32_t clicked) {
 	ili9488_draw_pixmap(ILI9488_LCD_WIDTH-soneca.width,0,soneca.width,soneca.height,soneca.data);
+	ili9488_draw_pixmap(50 , 150, termometro.width,termometro.height,termometro.data);
+	ili9488_draw_pixmap(200 , 150, ar.width,ar.height,ar.data);
 	font_draw_text(&digital52, "____________________", 0, 80, 1);
-	ili9488_draw_pixmap(30 , 150, termometro.width,termometro.height,termometro.data);
-	ili9488_draw_pixmap(160 , 150, ar.width,ar.height,ar.data);
+	font_draw_text(&digital52, "15", 40, 160+termometro.height, 1);
+	font_draw_text(&digital52, "100%", 180, 160+ar.height, 1);
 }
 
 uint32_t convert_axis_system_x(uint32_t touch_y) {
