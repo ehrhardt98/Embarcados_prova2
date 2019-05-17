@@ -159,11 +159,14 @@ pwm_channel_t g_pwm_channel_led;
 #define TASK_LCD_STACK_SIZE            (2*1024/sizeof(portSTACK_TYPE))
 #define TASK_LCD_STACK_PRIORITY        (tskIDLE_PRIORITY)
 
-#define TASK_AFEC_STACK_SIZE            (2*1024/sizeof(portSTACK_TYPE))
-#define TASK_AFEC_STACK_PRIORITY        (tskIDLE_PRIORITY)
+#define TASK_AFEC_STACK_SIZE           (2*1024/sizeof(portSTACK_TYPE))
+#define TASK_AFEC_STACK_PRIORITY       (tskIDLE_PRIORITY)
 
 #define TASK_PWM_STACK_SIZE            (2*1024/sizeof(portSTACK_TYPE))
 #define TASK_PWM_STACK_PRIORITY        (tskIDLE_PRIORITY)
+
+#define TASK_CLOCK_STACK_SIZE          (2*1024/sizeof(portSTACK_TYPE))
+#define TASK_CLOCK_STACK_PRIORITY      (tskIDLE_PRIORITY)
 
 #define AFEC_CHANNEL_TEMP_SENSOR AFEC_CHANNEL_0
 
@@ -179,6 +182,7 @@ QueueHandle_t xQueueAfec;
 QueueHandle_t xQueuePwm;
 SemaphoreHandle_t xSemaphore_but1;
 SemaphoreHandle_t xSemaphore_but3;
+SemaphoreHandle_t xSemaphore_clock;
 
 /************************************************************************/
 /* RTOS hooks                                                           */
@@ -457,11 +461,24 @@ void draw_temp(int temp) {
 	font_draw_text(&digital52, buffer_temp, 40, 160+termometro.height, 1);
 }
 
+void draw_termometer(int temp) {
+	temp = temp*37/100;
+	ili9488_set_foreground_color(COLOR_WHITE);
+	ili9488_draw_filled_rectangle(64, 158, 69, 195-temp);
+	ili9488_set_foreground_color(COLOR_BLACK);
+	ili9488_draw_filled_rectangle(64, 195, 69, 195-temp);
+}
+
 void draw_pot(int pot){
 	char buffer[4];
 	sprintf(buffer, "%3d", pot);
 	font_draw_text(&digital52, buffer, 180, 160 + ar.height, 1);
-	font_draw_text(&digital52, "%", 300, 160 + ar.height, 1);
+}
+
+void draw_time(int h, int m, int s) {
+	char buffer[100];
+	sprintf(buffer, "%02d:%02d:%02d", h, m, s);
+	font_draw_text(&digital52, buffer, 10, 10, 1);
 }
 
 uint32_t convert_axis_system_x(uint32_t touch_y) {
@@ -581,46 +598,54 @@ void task_lcd(void){
 	xQueueTouch = xQueueCreate( 10, sizeof( touchData ) );
 	xSemaphore_but1 = xSemaphoreCreateBinary();
 	xSemaphore_but3 = xSemaphoreCreateBinary();
+	xSemaphore_clock = xSemaphoreCreateBinary();
 	configure_lcd();
-  draw_screen();
-  draw_overlay(0);
-  io_init();
-  int temp;
-  int duty;
+	draw_screen();
+	draw_overlay(0);
+	io_init();
+	int temp;
+	int duty;
+	int h = 0;
+	int m = 0;
+	int s = 0;
   
-   // Escreve HH:MM no LCD
-   font_draw_text(&digital52, "HH:MM", 0, 0, 1);
-   touchData touch;
-    
-  while (true) {
-     if (xQueueReceive( xQueueTouch, &(touch), ( TickType_t )  10 / portTICK_PERIOD_MS)) {
-		  update_screen(touch.x, touch.y);
-		 printf("x:%d y:%d\n", touch.x, touch.y);
-     }
+	while (true) {
 	if (xQueueReceive(xQueueAfec, &(temp), (TickType_t) 10 / portTICK_PERIOD_MS)) {
-		printf("temp: %d\n", temp);
-		printf("duty: %d\n", duty);
 		
 		draw_temp(temp);
+		draw_termometer(temp);
 		
 		xQueueSend(xQueuePwm, &duty, NULL);
 	}
-	 if (xSemaphoreTake(xSemaphore_but1, (TickType_t) 10 / portTICK_PERIOD_MS)) {
-		 duty -= 10;
-		 printf("duty : %d", duty);
-		 if (duty <= 0) {
-			 duty = 0;
-		 }
-		 draw_pot(duty);
+		if (xSemaphoreTake(xSemaphore_but1, (TickType_t) 10 / portTICK_PERIOD_MS)) {
+			duty -= 10;
+			if (duty <= 0) {
+				duty = 0;
+			}
+			draw_pot(duty);
 	}
-	 if (xSemaphoreTake(xSemaphore_but3, (TickType_t) 10 / portTICK_PERIOD_MS)) {
-		 duty += 10;
-		 printf("duty : %d", duty);
-		 if (duty >= 100) {
-			 duty = 100;
-		 }
-		 draw_pot(duty);
-	 }
+		if (xSemaphoreTake(xSemaphore_but3, (TickType_t) 10 / portTICK_PERIOD_MS)) {
+			duty += 10;
+			if (duty >= 100) {
+				duty = 100;
+			}
+			draw_pot(duty);
+		}
+		if (xSemaphoreTake(xSemaphore_clock, (TickType_t) 10 / portTICK_PERIOD_MS)) {
+			s++;
+			if (s >= 60) {
+				s = 0;
+				m++;
+			}
+			if (m >= 60) {
+				m = 0;
+				h++;
+			}
+			if (h > 12) {
+				h = 0;
+			}
+			draw_time(h, m, s);
+		}
 	 
   }	 
 }
@@ -633,7 +658,6 @@ void task_afec(void){
   while (true) {
     afec_start_software_conversion(AFEC0);
     //vTaskDelay(4000 / portTICK_PERIOD_MS); // delay de 4s
-	//vTaskDelay(1000);
   }
 }
 
@@ -653,6 +677,13 @@ void task_pwm(void) {
 			 pwm_channel_update_duty(PWM0, &g_pwm_channel_led, 100-duty);
 		 }
 		//vTaskDelay(4000 / portTICK_PERIOD_MS); // delay de 4s
+	}
+}
+
+void task_clock(void) {
+	while (true) {
+		xSemaphoreGive(xSemaphore_clock);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
 	}
 }
 
@@ -692,6 +723,10 @@ int main(void)
    
    if (xTaskCreate(task_pwm, "pwm", TASK_PWM_STACK_SIZE, NULL, TASK_PWM_STACK_PRIORITY, NULL) != pdPASS) {
 	  printf("Failed to create test pwm task\r\n");
+   }
+   
+   if (xTaskCreate(task_clock, "clock", TASK_CLOCK_STACK_SIZE, NULL, TASK_CLOCK_STACK_PRIORITY, NULL) != pdPASS) {
+	   printf("Failed to create test clock task\r\n");
    }
    
 
